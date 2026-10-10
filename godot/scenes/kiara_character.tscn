@@ -1,33 +1,34 @@
 [gd_scene load_steps=14 format=3]
 
-[ext_resource type="Script" path="res://scripts/locomotion_controller.gd" id="1_ygin6"]
-[ext_resource type="PackedScene" path="res://assets/kiara.glb" id="2_n8yio"]
-[ext_resource type="Script" path="res://scripts/third_person_camera.gd" id="3_gychb"]
-[ext_resource type="Script" path="res://scripts/spring_bone_rig.gd" id="4_bosms"]
-[ext_resource type="Script" path="res://scripts/mcu_bridge.gd" id="5_ciofr"]
-[ext_resource type="Script" path="res://scripts/gamepad_controller.gd" id="6_lmg4g"]
-[ext_resource type="Script" path="res://scripts/touch_interaction.gd" id="7_he5bc"]
-[ext_resource type="Script" path="res://scripts/autonomy_driver.gd" id="8_77mkt"]
-[ext_resource type="Script" path="res://scripts/teleop_recorder.gd" id="9_l543f"]
+[ext_resource type="Script" path="res://scripts/locomotion_controller.gd" id="1_a0tig"]
+[ext_resource type="PackedScene" path="res://assets/kiara.glb" id="2_0qo31"]
+[ext_resource type="Script" path="res://scripts/third_person_camera.gd" id="3_ohhnm"]
+[ext_resource type="Script" path="res://scripts/spring_bone_rig.gd" id="4_70x4d"]
+[ext_resource type="Script" path="res://scripts/mcu_bridge.gd" id="5_tfcvf"]
+[ext_resource type="Script" path="res://scripts/gamepad_controller.gd" id="6_pmo4e"]
+[ext_resource type="Script" path="res://scripts/touch_interaction.gd" id="7_vrkwl"]
+[ext_resource type="Script" path="res://scripts/autonomy_driver.gd" id="8_7hnbm"]
+[ext_resource type="Script" path="res://scripts/teleop_recorder.gd" id="9_y6vce"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_gquxc"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_vscyg"]
 radius = 0.190456
 height = 1.88414
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ovovu"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_gfsrk"]
 
-[sub_resource type="Sky" id="Sky_slf8a"]
-sky_material = SubResource("ProceduralSkyMaterial_ovovu")
+[sub_resource type="Sky" id="Sky_ii5gc"]
+sky_material = SubResource("ProceduralSkyMaterial_gfsrk")
 
-[sub_resource type="Environment" id="Environment_1lr18"]
+[sub_resource type="Environment" id="Environment_3k1bu"]
 background_mode = 2
-sky = SubResource("Sky_slf8a")
+sky = SubResource("Sky_ii5gc")
 ambient_light_source = 3
 ambient_light_energy = 0.8
 
 [node name="KiaraCharacter" type="CharacterBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.09273, 0)
-script = ExtResource("1_ygin6")
+collision_layer = 2
+script = ExtResource("1_a0tig")
 visual_path = NodePath("Model")
 camera_rig_path = NodePath("CameraRig")
 touch_path = NodePath("TouchInteraction")
@@ -38,16 +39,16 @@ jump_velocity = 4.5
 turn_speed = 6.0
 has_skin = true
 
-[node name="Model" type="Node3D" parent="." instance=ExtResource("2_n8yio")]
+[node name="Model" type="Node3D" parent="." instance=ExtResource("2_0qo31")]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.130665, 0)
-shape = SubResource("CapsuleShape3D_gquxc")
+shape = SubResource("CapsuleShape3D_vscyg")
 
 [node name="CameraRig" type="SpringArm3D" parent="."]
 transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.472258, 0)
 spring_length = 3.5
-script = ExtResource("3_gychb")
+script = ExtResource("3_ohhnm")
 yaw_speed = 2.5
 pitch_speed = 1.8
 min_pitch = -0.6
@@ -62,35 +63,35 @@ transform = Transform3D(0.819152, -0.469846, 0.32899, 0, 0.573576, 0.819152, -0.
 light_energy = 1.1
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_1lr18")
+environment = SubResource("Environment_3k1bu")
 
 [node name="SpringBoneRig" type="Node" parent="."]
-script = ExtResource("4_bosms")
+script = ExtResource("4_70x4d")
 skeleton_path = NodePath("../Model/Kiara_Armature/Skeleton3D")
 
 [node name="MCUBridge" type="Node" parent="."]
-script = ExtResource("5_ciofr")
+script = ExtResource("5_tfcvf")
 skeleton_path = NodePath("../Model/Kiara_Armature/Skeleton3D")
 host = "127.0.0.1"
 port = 8765
 reconnect_interval = 2.0
 
 [node name="GamepadController" type="Node" parent="."]
-script = ExtResource("6_lmg4g")
+script = ExtResource("6_pmo4e")
 device = 0
 
 [node name="TouchInteraction" type="Node" parent="."]
-script = ExtResource("7_he5bc")
+script = ExtResource("7_vrkwl")
 camera_path = NodePath("../CameraRig/Camera3D")
 double_tap_window = 0.35
 caress_min_speed = 0.02
 caress_max_speed = 3.0
 
 [node name="AutonomyDriver" type="Node" parent="."]
-script = ExtResource("8_77mkt")
+script = ExtResource("8_7hnbm")
 
 [node name="TeleopRecorder" type="Node" parent="."]
-script = ExtResource("9_l543f")
+script = ExtResource("9_y6vce")
 out_path = "user://teleop_log.jsonl"
 sample_hz = 20.0
 body_path = NodePath("..")

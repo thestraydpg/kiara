@@ -20,6 +20,16 @@ func _initialize() -> void:
 	var root := CharacterBody3D.new()
 	root.name = "KiaraCharacter"
 	root.set_script(load(SCRIPTS + "locomotion_controller.gd"))
+	# Her own collision capsule sits on a different physics layer than
+	# world geometry (set below on Ground) specifically so CameraRig's
+	# spring-arm collision avoidance - which by default tests against
+	# layer 1, same as everything else - doesn't hit HER OWN capsule
+	# first and collapse the camera down to ~0 length, landing it
+	# inside her head. That's exactly what was happening before this:
+	# the arm's pivot sits at head height, right inside her own capsule,
+	# so without this separation it could never extend outward at all.
+	root.collision_layer = 2
+	root.collision_mask = 1
 	self.root.add_child(root)
 
 	var model := glb_scene.instantiate()
@@ -105,6 +115,8 @@ func _initialize() -> void:
 	# MuJoCo floor geom is a separate, unrelated simulation) ---
 	var ground := StaticBody3D.new()
 	ground.name = "Ground"
+	ground.collision_layer = 1  # explicit: this is the layer CameraRig's spring-arm avoids
+	ground.collision_mask = 0   # a StaticBody3D never moves, so it has nothing to detect
 	var ground_coll := CollisionShape3D.new()
 	var ground_shape := WorldBoundaryShape3D.new()
 	ground_shape.plane = Plane(Vector3.UP, 0.0)
