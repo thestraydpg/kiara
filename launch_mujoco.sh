@@ -45,27 +45,38 @@ if ! deps_ok; then
 fi
 
 echo
-echo "What do you want to train or continue?"
-echo "  1) Standing balance / locomotion"
-echo "  2) Reach and grasp"
-read -r -p "Choose 1 or 2: " choice
+echo "What do you want to do?"
+echo "  1) Watch her - standing/locomotion (opens an interactive 3D window)"
+echo "  2) Watch her - reach and grasp"
+echo "  3) Train/continue - standing balance / locomotion (no window, just logs)"
+echo "  4) Train/continue - reach and grasp (no window, just logs)"
+read -r -p "Choose 1-4: " choice
 
-if [ "$choice" = "2" ]; then
-    if [ -f checkpoints/reach_grasp_latest.zip ]; then
-        echo "Resuming from the included checkpoint..."
-        python3 train_reach_grasp.py --timesteps 3000000 --n-envs 4 \
-            --resume checkpoints/reach_grasp_latest.zip \
-            --vecnorm-resume checkpoints/reach_grasp_latest_vecnormalize.pkl
-    else
-        python3 train_reach_grasp.py --timesteps 3000000 --n-envs 4
-    fi
-else
-    if [ -f checkpoints/stand_latest.zip ]; then
-        echo "Resuming from the included checkpoint..."
-        python3 train.py --stage stand --timesteps 10000000 --n-envs 4 \
-            --resume checkpoints/stand_latest.zip \
-            --vecnorm-resume checkpoints/stand_latest_vecnormalize.pkl
-    else
-        python3 train.py --stage stand --timesteps 10000000 --n-envs 4
-    fi
-fi
+case "$choice" in
+    2)
+        python3 view.py --task reach_grasp
+        ;;
+    3)
+        if [ -f checkpoints/stand_latest.zip ]; then
+            echo "Resuming from the included checkpoint..."
+            python3 train.py --stage stand --timesteps 10000000 --n-envs 4 \
+                --resume checkpoints/stand_latest.zip \
+                --vecnorm-resume checkpoints/stand_latest_vecnormalize.pkl
+        else
+            python3 train.py --stage stand --timesteps 10000000 --n-envs 4
+        fi
+        ;;
+    4)
+        if [ -f checkpoints/reach_grasp_latest.zip ]; then
+            echo "Resuming from the included checkpoint..."
+            python3 train_reach_grasp.py --timesteps 3000000 --n-envs 4 \
+                --resume checkpoints/reach_grasp_latest.zip \
+                --vecnorm-resume checkpoints/reach_grasp_latest_vecnormalize.pkl
+        else
+            python3 train_reach_grasp.py --timesteps 3000000 --n-envs 4
+        fi
+        ;;
+    *)
+        python3 view.py --task stand
+        ;;
+esac

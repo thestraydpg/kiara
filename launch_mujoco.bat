@@ -52,14 +52,26 @@ exit /b 1
 
 :menu
 echo.
-echo What do you want to train or continue?
-echo   1) Standing balance / locomotion
-echo   2) Reach and grasp
-choice /c 12 /n /m "Choose 1 or 2: "
-if errorlevel 2 goto reach
-if errorlevel 1 goto stand
+echo What do you want to do?
+echo   1) Watch her - standing/locomotion (opens an interactive 3D window)
+echo   2) Watch her - reach and grasp
+echo   3) Train/continue - standing balance / locomotion (no window, just logs)
+echo   4) Train/continue - reach and grasp (no window, just logs)
+choice /c 1234 /n /m "Choose 1-4: "
+if errorlevel 4 goto train_reach
+if errorlevel 3 goto train_stand
+if errorlevel 2 goto watch_reach
+if errorlevel 1 goto watch_stand
 
-:stand
+:watch_stand
+python view.py --task stand
+goto end
+
+:watch_reach
+python view.py --task reach_grasp
+goto end
+
+:train_stand
 if exist checkpoints\stand_latest.zip (
     echo Resuming from the included checkpoint...
     python train.py --stage stand --timesteps 10000000 --n-envs 4 ^
@@ -70,7 +82,7 @@ if exist checkpoints\stand_latest.zip (
 )
 goto end
 
-:reach
+:train_reach
 if exist checkpoints\reach_grasp_latest.zip (
     echo Resuming from the included checkpoint...
     python train_reach_grasp.py --timesteps 3000000 --n-envs 4 ^
@@ -83,6 +95,7 @@ goto end
 
 :end
 echo.
-echo Stopped (Ctrl+C or training finished). Checkpoints are saved under
-echo mujoco\checkpoints\ as training runs - safe to close this window.
+echo Stopped (closed the viewer window, Ctrl+C, or training finished).
+echo Checkpoints are saved under mujoco\checkpoints\ as training runs -
+echo safe to close this window.
 pause

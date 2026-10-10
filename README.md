@@ -33,9 +33,16 @@ things by hand instead.
 
 ## Quick start: Godot (render + soft-body physics)
 
-1. Open `godot/` as a project in Godot 4.3+.
-2. Run the project (F5) — the main scene is `scenes/kiara_character.tscn`.
-3. What's wired up:
+1. Run `launch_godot.bat` / `launch_godot.sh` (or `godot --path godot` by
+   hand) — this runs the actual scene directly, not the editor (that's
+   what `--path` without `-e`/`--editor` does). You should see her
+   standing in the scene immediately with a sky and ground, camera
+   already behind her.
+   - If you open the project *in* the Godot editor instead (double-
+     clicking it in the project manager) you still need to press
+     Play/F5 once you're in there - the editor itself doesn't run the
+     game on its own.
+2. What's wired up:
    - `assets/kiara.glb` — the full rigged, textured mesh (real eyeballs
      + eyelids, separated jaw/lips, 160-bone skeleton, hair clumps).
    - `SpringBoneRig` — jiggle physics (breast/belly/glute/hair) driven off
@@ -95,9 +102,26 @@ the docstrings in both files for exactly what's done vs. not yet.
 
 ## Quick start: MuJoCo (locomotion + reach/grasp)
 
+**To actually watch her** (this is separate from training - training
+runs headless with no window, by design, since it's meant to run for
+hours in the background):
 ```
 cd mujoco
 pip install -r requirements.txt
+python3 view.py --task stand
+```
+Opens an interactive window with MuJoCo's native viewer. Auto-loads the
+latest checkpoint for that task if one exists and runs it live, so
+you'll see her actively balancing rather than just collapsing under
+gravity; `--task reach_grasp` watches the arm-reaching task instead, and
+`--no-policy` skips loading any policy if you just want to see the body/
+world with zero action. Mouse: drag to orbit, scroll to zoom, ctrl+right-
+drag directly on her to push her and watch her recover - the standard way
+to test a standing policy interactively. The `launch_mujoco.bat`/`.sh`
+shortcut's menu options 1-2 do exactly this.
+
+**To train/continue training** (menu options 3-4 in the shortcut):
+```
 python3 train.py --stage stand --timesteps 10000000 --n-envs 4
 ```
 
