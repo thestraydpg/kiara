@@ -23,16 +23,25 @@ for v in body.data.vertices:
 H = max_co.z - min_co.z
 ground = min_co.z
 
-EYE_RADIUS = 0.0105 * H   # ~20mm visible radius (full eyeball is ~24mm but eyelids hide most of it)
+# A real adult eyeball is ~24mm diameter (12mm radius), not ~40mm - the
+# previous 0.0105*H (~20mm radius) built an eyeball roughly double true
+# size. Combined with not being recessed far enough into the socket,
+# the sphere's front surface measured ~9-10mm in front of the nearest
+# eyelid/socket skin (probed directly: eyeball front at y=-0.1479 vs.
+# nearest socket skin at y=-0.1385) - that's the literal geometry of
+# the "bulging Pixar eyes" look. Shrinking the sphere to real scale.
+EYE_RADIUS = 0.0064 * H   # ~12mm radius, real adult eyeball scale
 
 # Empirically calibrated eye socket position (the original skeleton's
 # landmark fractions put eyes near the hairline - "crown" was measured
 # from the hair-inflated bounding box, not the actual skull, throwing off
 # every upper-face fraction). These were found by rendering a marker grid
-# against the real baked face texture and matching by eye.
+# against the real baked face texture and matching by eye. X/Z (spacing,
+# height) were fine - only depth (Y) and the oversized radius above were
+# causing the bulge.
 EYE_X_FRAC = 0.021      # slightly wider apart than first guess, so they don't touch
 EYE_Z_FRAC = 0.925
-EYE_Y_FRAC = -0.068     # pulled back further into the socket than first guess
+EYE_Y_FRAC = -0.060     # recessed further into the socket now that the eyeball is real-world scale
 
 # Actually move the eye/lid bones to the calibrated position - the
 # original build_skeleton.py placed them using the flawed LM['eyes'] etc.
@@ -47,7 +56,7 @@ for side, sign in (('L', 1), ('R', -1)):
     eye_b = eb[f"eye.{side}"]
     eye_b.head = (ex, ey, ez)
     eye_b.tail = (ex, ey - 0.03*H, ez)
-    for lid_name, lid_z_off in ((f"lid_upper.{side}", 0.012*H), (f"lid_lower.{side}", -0.012*H)):
+    for lid_name, lid_z_off in ((f"lid_upper.{side}", 0.0073*H), (f"lid_lower.{side}", -0.0073*H)):
         lb = eb[lid_name]
         lb.head = (ex, ey - 0.005*H, ez + lid_z_off)
         lb.tail = (ex, ey - 0.015*H, ez + lid_z_off*0.6)
