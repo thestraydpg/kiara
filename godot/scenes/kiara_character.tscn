@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/kiara.glb" id="1_ifjh1"]
+[ext_resource type="Script" path="res://scripts/spring_bone_rig.gd" id="2_d2bb0"]
+
+[node name="KiaraCharacter" type="Node3D"]
+
+[node name="Model" type="Node3D" parent="." instance=ExtResource("1_ifjh1")]
+
+[node name="SpringBoneRig" type="Node" parent="."]
+script = ExtResource("2_d2bb0")
+skeleton_path = NodePath("../Model/Kiara_Armature/Skeleton3D")

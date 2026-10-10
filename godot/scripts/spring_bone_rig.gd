@@ -55,7 +55,12 @@ func _ready() -> void:
 
 func _add_chain(skeleton: Skeleton3D, bone_name: String, profile: Dictionary) -> void:
 	var chain := SpringBoneChainScript.new()
-	chain.skeleton_path = get_path_to(skeleton)
+	# chain will be added as OUR child (one level deeper than self), so its
+	# path to the skeleton needs one extra "../" beyond what get_path_to()
+	# returns for self's own position - using self's path directly here is
+	# an off-by-one-level bug that leaves every chain unable to find the
+	# skeleton once it's actually parented in.
+	chain.skeleton_path = NodePath("../" + str(get_path_to(skeleton)))
 	chain.bone_name = bone_name
 	chain.stiffness = profile["stiffness"]
 	chain.damping = profile["damping"]
