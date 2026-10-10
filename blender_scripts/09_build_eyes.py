@@ -93,7 +93,7 @@ bsdf = nt.nodes.get("Principled BSDF")
 tex_node = nt.nodes.new("ShaderNodeTexImage")
 tex_node.image = iris_img
 nt.links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
-bsdf.inputs["Roughness"].default_value = 0.15
+bsdf.inputs["Roughness"].default_value = 0.35
 
 # -- eyelid material: skin-tone-ish, matches surrounding face reasonably --
 lid_mat = bpy.data.materials.new("Kiara_LidMat")
@@ -117,12 +117,32 @@ def make_eyeball(side, sign):
     obj.rotation_euler = (math.radians(90), 0, 0)
     obj.data.materials.append(eye_mat)
 
-    # UV project so the iris lands on the front-facing pole
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_all(action='SELECT')
-    bpy.ops.uv.sphere_project()
-    bpy.ops.object.mode_set(mode='OBJECT')
+    # Manual UV projection, NOT bpy.ops.uv.sphere_project(): that operator
+    # reads the 3D viewport's view angle to decide projection direction,
+    # which doesn't exist in headless (-b) mode. It silently produced a
+    # degenerate mapping that never actually put the iris/pupil texture
+    # on the front-facing pole - the eyes rendered as blank white/peach
+    # discs with no visible iris no matter how the eyelid coverage was
+    # tuned, because the texture's iris was mapped somewhere off-camera.
+    # Local +Z is the sphere's pole, which rotation_euler=(90,0,0) above
+    # sends to world -Y (toward the camera) - so a flat orthographic
+    # projection of each vertex's local (x,y) onto the texture plane
+    # puts the iris exactly where it needs to be, deterministically.
+    mesh = obj.data
+    # primitive_uv_sphere_add() already created its own default "UVMap"
+    # layer (a lat/long wrap whose pole doesn't match the front-facing
+    # direction we need). Adding a second layer doesn't replace it as the
+    # active-for-render layer, so the image texture node kept sampling
+    # the original default UVs no matter what this one contained - the
+    # iris never moved. Overwrite the existing layer's data in place
+    # instead of creating a new one.
+    uv_layer = mesh.uv_layers.active
+    for poly in mesh.polygons:
+        for loop_idx in poly.loop_indices:
+            vidx = mesh.loops[loop_idx].vertex_index
+            co = mesh.vertices[vidx].co
+            uv_layer.data[loop_idx].uv = (0.5 + co.x / (2 * EYE_RADIUS), 0.5 + co.y / (2 * EYE_RADIUS))
+    bpy.ops.object.shade_smooth()
 
     bpy.ops.object.select_all(action='DESELECT')
     obj.select_set(True)
@@ -141,7 +161,7 @@ def make_eyelid(side, sign, upper: bool):
     # a thin curved cap: take a UV sphere slightly larger than the eyeball,
     # keep only the top (or bottom) third as the lid shell
     r = EYE_RADIUS * 1.12
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=eye_pos, segments=16, ring_count=12)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=eye_pos, segments=32, ring_count=48)
     obj = bpy.context.active_object
     obj.name = f"Eyelid_{'Upper' if upper else 'Lower'}.{side}"
     obj.data.materials.append(lid_mat)
@@ -155,15 +175,24 @@ def make_eyelid(side, sign, upper: bool):
     # cover more of the sphere than a naive half-split would - real open
     # eyes only expose a lens-shaped band around the equator, most of the
     # eyeball hides behind the lids even "open"
+    # T controls how far down toward the equator each lid cap reaches.
+    # Smaller T = more of the sphere kept = more lid coverage = a
+    # narrower open-eye slit. 0.30 was backwards from the intent in the
+    # comment above - it left a gap 0.6*r tall (30% of the whole eyeball
+    # height) uncovered, which is what actually produced the huge
+    # white-dominated "insane" eyes. A real palpebral fissure exposes a
+    # much smaller band.
+    T = 0.38
     to_delete = []
     for v in bm.verts:
-        if upper and v.co.z < r * 0.30:
+        if upper and v.co.z < r * T:
             to_delete.append(v)
-        elif not upper and v.co.z > -r * 0.30:
+        elif not upper and v.co.z > -r * T:
             to_delete.append(v)
     bmesh.ops.delete(bm, geom=to_delete, context='VERTS')
     bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.shade_smooth()
 
     # move the lid's origin to the bone position (its rotation pivot)
     obj.location = bone_pos
