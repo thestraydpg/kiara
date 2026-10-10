@@ -2,3 +2,5 @@
 godot/.godot/
 __pycache__/
 *.pyc
+mujoco/checkpoints/
+mujoco/logs/
