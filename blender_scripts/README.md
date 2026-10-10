@@ -21,12 +21,26 @@ scripts rather than versioned directly).
 
 ## Known issues to fix in a future pass
 
-- **Thigh texture artifact**: a small jagged black bake-miss region on
-  the left thigh in the albedo texture (seam/UV defect, not a ray-distance
-  issue - see commit history for what was already ruled out).
 - **Eyelid blink geometry**: the blink mechanism is correctly wired
   (bones parented right, rotation direction correct) but the cut-sphere
   eyelid cap shape distorts at full-closure rotation angles - needs an
   actual pivot/shape redesign, better done interactively in Blender's
   GUI than through more headless iteration.
-- **Jaw/lips**: still flat texture, no real separation yet (in progress).
+- **Eye shape**: currently a plain spherical-zone cut (lens/stadium
+  shape, not a pointed almond). Reference photos show clear almond
+  corners; three procedural attempts at that (elliptical taper,
+  flat-core+linear-ramp taper, horizontal stretch) all looked worse
+  than the plain cut - see the comment in 09_build_eyes.py. Getting a
+  true almond needs lid geometry sculpted against the eyeball's
+  curvature, not a parametric cut.
+
+## Fixed (previously listed here)
+
+- ~~Thigh texture artifact~~: the "bake-miss" black region on the
+  left thigh/hip wasn't actually a bake failure - it was pubic-area
+  hair texture from the source scan bleeding onto that UV island.
+  Inpainted out directly in kiara_albedo.png (not re-baked - see git
+  history, no pipeline script currently reproduces this step, it was
+  a one-off image fix via opencv).
+- ~~Jaw/lips flat texture~~: real mesh separation landed in
+  11_separate_jaw_lips.py.
