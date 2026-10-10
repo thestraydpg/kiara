@@ -190,6 +190,20 @@ def make_eyelid(side, sign, upper: bool):
         elif not upper and v.co.z > -r * T:
             to_delete.append(v)
     bmesh.ops.delete(bm, geom=to_delete, context='VERTS')
+    # A plain Z-plane cut through a sphere already reads as a normal eye
+    # at a glance - the sphere's own curvature naturally rounds the
+    # sides of the opening into a lens/stadium shape. Three further
+    # attempts at sharpening this into a literal pointed almond (an
+    # elliptical X taper, a flat-core + linear-ramp taper, and a uniform
+    # horizontal stretch of the cut cap) all made it worse: the first
+    # two fought the sphere's own curvature with a second, independently
+    # shaped cutoff and produced a flat-topped/boxy look at this mesh
+    # resolution; the stretch pulled the lid's rim away from the
+    # eyeball's (unstretched) surface, leaving a visible gap between
+    # them. Getting a true pointed almond right needs actual lid
+    # geometry sculpted to match the eyeball's curvature, not a
+    # parametric cut - leaving that as a known follow-up rather than
+    # forcing a worse result through more threshold math.
     bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.shade_smooth()
