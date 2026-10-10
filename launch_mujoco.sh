@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")/mujoco"
 
+install_deps() {
+    pip cache purge >/dev/null 2>&1 || true
+    pip install --upgrade pip >/dev/null
+    pip install --no-cache-dir -r requirements.txt
+}
+
+deps_ok() {
+    python3 -c "import stable_baselines3" >/dev/null 2>&1
+}
+
 if [ ! -d venv ]; then
     echo "Creating a virtual environment..."
     python3 -m venv venv
@@ -9,18 +19,28 @@ source venv/bin/activate
 
 # Don't just trust that venv/ existing means it's populated - a
 # cancelled/failed install before leaves an empty-but-present venv that
-# looks "already set up" and silently hits ModuleNotFoundError. Check
-# the import instead.
-if ! python3 -c "import stable_baselines3" >/dev/null 2>&1; then
-    echo "Installing MuJoCo / RL dependencies - torch is a big download, this may take a few minutes..."
-    pip install --upgrade pip >/dev/null
-    pip install -r requirements.txt
-    if ! python3 -c "import stable_baselines3" >/dev/null 2>&1; then
+# looks "already set up" and silently hits ModuleNotFoundError.
+if ! deps_ok; then
+    echo "Installing MuJoCo / RL dependencies - torch is a big download"
+    echo "(needs roughly 2-3 GB free disk space), this may take a few minutes..."
+    install_deps
+    if ! deps_ok; then
         echo
-        echo "Dependency install failed. Check your internet connection and try again, or run:"
-        echo "  venv/bin/pip install -r requirements.txt"
-        echo "directly to see the actual error."
-        exit 1
+        echo "That didn't fully succeed. The virtual environment may now be in a"
+        echo "half-broken state from the failed attempt - deleting it and trying"
+        echo "once more from a clean slate..."
+        deactivate
+        rm -rf venv
+        python3 -m venv venv
+        source venv/bin/activate
+        install_deps
+        if ! deps_ok; then
+            echo
+            echo "Dependency install failed twice - scroll up for pip's actual error."
+            echo "Most likely cause: not enough free disk space (a full torch install"
+            echo "needs roughly 2-3 GB free) - free some room and run this again."
+            exit 1
+        fi
     fi
 fi
 

@@ -19,18 +19,21 @@ if not exist "mujoco\venv" (
     python -m venv mujoco\venv
 )
 call mujoco\venv\Scripts\activate.bat
-echo Installing MuJoCo / RL dependencies - torch is a big download, this
-echo can take a few minutes on a slow connection...
+echo Installing MuJoCo / RL dependencies - torch is a big download
+echo (a full install needs roughly 2-3 GB free disk space), this can
+echo take a few minutes on a slow connection...
+pip cache purge >nul 2>nul
 pip install --upgrade pip >nul
-pip install -r mujoco\requirements.txt
+pip install --no-cache-dir -r mujoco\requirements.txt
 
 echo Verifying the install actually took...
 mujoco\venv\Scripts\python.exe -c "import stable_baselines3, mujoco, torch" >nul 2>nul
 if errorlevel 1 (
     echo.
-    echo WARNING: dependency install did not fully succeed - re-run
-    echo install.bat once your internet connection is stable, or the
-    echo "Kiara (Train MuJoCo)" shortcut will retry automatically next
+    echo WARNING: dependency install did not fully succeed - scroll up to
+    echo see pip's actual error. If it says the disk is out of space,
+    echo free some room on this drive and re-run install.bat. Otherwise
+    echo the "Kiara (Train MuJoCo)" shortcut will retry automatically next
     echo time you use it.
 ) else (
     echo Dependencies OK.

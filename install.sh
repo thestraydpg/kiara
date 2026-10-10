@@ -19,15 +19,18 @@ if [ ! -d mujoco/venv ]; then
     python3 -m venv mujoco/venv
 fi
 source mujoco/venv/bin/activate
-echo "Installing MuJoCo / RL dependencies - torch is a big download, this can take a few minutes..."
+echo "Installing MuJoCo / RL dependencies - torch is a big download (needs"
+echo "roughly 2-3 GB free disk space), this can take a few minutes..."
+pip cache purge >/dev/null 2>&1 || true
 pip install --upgrade pip >/dev/null
-pip install -r mujoco/requirements.txt
+pip install --no-cache-dir -r mujoco/requirements.txt
 
 if python3 -c "import stable_baselines3, mujoco, torch" >/dev/null 2>&1; then
     echo "Dependencies OK."
 else
-    echo "WARNING: dependency install did not fully succeed - re-run install.sh once your"
-    echo "internet connection is stable, or launch_mujoco.sh will retry automatically next time."
+    echo "WARNING: dependency install did not fully succeed - scroll up for pip's actual"
+    echo "error. If it's disk space, free some room and re-run install.sh; otherwise"
+    echo "launch_mujoco.sh will retry automatically next time."
 fi
 deactivate
 
