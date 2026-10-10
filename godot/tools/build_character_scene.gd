@@ -51,6 +51,15 @@ func _initialize() -> void:
 	spring_rig.owner = root
 	print("skeleton_path set to: ", path_from_sibling)
 
+	# MCU bridge - same path-before-add_child ordering, same "../" depth
+	# correction as spring_rig above (both are root's direct children).
+	var mcu_bridge := Node.new()
+	mcu_bridge.set_script(load("res://scripts/mcu_bridge.gd"))
+	mcu_bridge.name = "MCUBridge"
+	mcu_bridge.set("skeleton_path", path_from_sibling)
+	root.add_child(mcu_bridge)
+	mcu_bridge.owner = root
+
 	# Only the instance's own root needs an owner for it to show up as a
 	# child of our new scene - do NOT recurse into its internal children's
 	# ownership. Setting owner on every node inside the glb hierarchy (as an

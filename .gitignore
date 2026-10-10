@@ -1,2 +1,4 @@
 /assets/
 godot/.godot/
+__pycache__/
+*.pyc
