@@ -14,6 +14,10 @@ config/name="Kiara"
 run/main_scene="res://scenes/kiara_character.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 
+[autoload]
+
+BodyIntent="*res://scripts/body_intent.gd"
+
 [physics]
 
 common/physics_ticks_per_second=60

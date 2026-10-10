@@ -1,20 +1,96 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=14 format=3]
 
-[ext_resource type="PackedScene" path="res://assets/kiara.glb" id="1_3dsgt"]
-[ext_resource type="Script" path="res://scripts/spring_bone_rig.gd" id="2_x8lxs"]
-[ext_resource type="Script" path="res://scripts/mcu_bridge.gd" id="3_ag01v"]
+[ext_resource type="Script" path="res://scripts/locomotion_controller.gd" id="1_ygin6"]
+[ext_resource type="PackedScene" path="res://assets/kiara.glb" id="2_n8yio"]
+[ext_resource type="Script" path="res://scripts/third_person_camera.gd" id="3_gychb"]
+[ext_resource type="Script" path="res://scripts/spring_bone_rig.gd" id="4_bosms"]
+[ext_resource type="Script" path="res://scripts/mcu_bridge.gd" id="5_ciofr"]
+[ext_resource type="Script" path="res://scripts/gamepad_controller.gd" id="6_lmg4g"]
+[ext_resource type="Script" path="res://scripts/touch_interaction.gd" id="7_he5bc"]
+[ext_resource type="Script" path="res://scripts/autonomy_driver.gd" id="8_77mkt"]
+[ext_resource type="Script" path="res://scripts/teleop_recorder.gd" id="9_l543f"]
 
-[node name="KiaraCharacter" type="Node3D"]
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_gquxc"]
+radius = 0.190456
+height = 1.88414
 
-[node name="Model" type="Node3D" parent="." instance=ExtResource("1_3dsgt")]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ovovu"]
+
+[sub_resource type="Sky" id="Sky_slf8a"]
+sky_material = SubResource("ProceduralSkyMaterial_ovovu")
+
+[sub_resource type="Environment" id="Environment_1lr18"]
+background_mode = 2
+sky = SubResource("Sky_slf8a")
+ambient_light_source = 3
+ambient_light_energy = 0.8
+
+[node name="KiaraCharacter" type="CharacterBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.09273, 0)
+script = ExtResource("1_ygin6")
+visual_path = NodePath("Model")
+camera_rig_path = NodePath("CameraRig")
+touch_path = NodePath("TouchInteraction")
+walk_speed = 1.4
+run_speed = 3.2
+sprint_speed = 5.0
+jump_velocity = 4.5
+turn_speed = 6.0
+has_skin = true
+
+[node name="Model" type="Node3D" parent="." instance=ExtResource("2_n8yio")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.130665, 0)
+shape = SubResource("CapsuleShape3D_gquxc")
+
+[node name="CameraRig" type="SpringArm3D" parent="."]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0.472258, 0)
+spring_length = 3.5
+script = ExtResource("3_gychb")
+yaw_speed = 2.5
+pitch_speed = 1.8
+min_pitch = -0.6
+max_pitch = 0.5
+recenter_on_idle = false
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+current = true
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.819152, -0.469846, 0.32899, 0, 0.573576, 0.819152, -0.573576, -0.67101, 0.469846, 0, 0, 0)
+light_energy = 1.1
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1lr18")
 
 [node name="SpringBoneRig" type="Node" parent="."]
-script = ExtResource("2_x8lxs")
+script = ExtResource("4_bosms")
 skeleton_path = NodePath("../Model/Kiara_Armature/Skeleton3D")
 
 [node name="MCUBridge" type="Node" parent="."]
-script = ExtResource("3_ag01v")
+script = ExtResource("5_ciofr")
 skeleton_path = NodePath("../Model/Kiara_Armature/Skeleton3D")
 host = "127.0.0.1"
 port = 8765
 reconnect_interval = 2.0
+
+[node name="GamepadController" type="Node" parent="."]
+script = ExtResource("6_lmg4g")
+device = 0
+
+[node name="TouchInteraction" type="Node" parent="."]
+script = ExtResource("7_he5bc")
+camera_path = NodePath("../CameraRig/Camera3D")
+double_tap_window = 0.35
+caress_min_speed = 0.02
+caress_max_speed = 3.0
+
+[node name="AutonomyDriver" type="Node" parent="."]
+script = ExtResource("8_77mkt")
+
+[node name="TeleopRecorder" type="Node" parent="."]
+script = ExtResource("9_l543f")
+out_path = "user://teleop_log.jsonl"
+sample_hz = 20.0
+body_path = NodePath("..")
