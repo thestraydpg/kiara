@@ -104,12 +104,56 @@ tex_node.image = iris_img
 nt.links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
 bsdf.inputs["Roughness"].default_value = 0.35
 
-# -- eyelid material: skin-tone-ish, matches surrounding face reasonably --
+# -- eyelid material --
+# A flat, textureless material next to the photo-baked, pore-detailed
+# face skin is what actually reads as "a fake eye glued onto a body it
+# wasn't originally on" - no amount of color accuracy alone fixes that,
+# the lid needs comparable micro-detail. Two things, both grounded in
+# the real asset rather than guessed:
+#  1. Base color sampled directly from the baked albedo texture at the
+#     confirmed socket-adjacent skin pixels (median of the non-hair,
+#     non-eye/brow-outlier samples - see scratchpad probe scripts from
+#     this session), not an invented value. (0.70,0.47,0.34) before was
+#     noticeably more orange/saturated than the real (0.67,0.53,0.42).
+#  2. Procedural noise driving both a bump (pore-scale micro-displacement)
+#     and a subtle base-color variation, so the surface isn't perfectly
+#     flat-shaded next to a surface that has real detail everywhere.
+#     This can't literally reuse the face's own pore texture - the face
+#     UV island is low-resolution and smart-UV-packed so tightly with
+#     hair-clump islands that the only "clean" patch near the socket is
+#     a few dozen pixels, including the eye/brow themselves at this
+#     scale - tiling that would look far worse than procedural noise.
 lid_mat = bpy.data.materials.new("Kiara_LidMat")
 lid_mat.use_nodes = True
-lid_bsdf = lid_mat.node_tree.nodes.get("Principled BSDF")
-lid_bsdf.inputs["Base Color"].default_value = (0.70, 0.47, 0.34, 1.0)
-lid_bsdf.inputs["Roughness"].default_value = 0.5
+nt_lid = lid_mat.node_tree
+lid_bsdf = nt_lid.nodes.get("Principled BSDF")
+lid_bsdf.inputs["Base Color"].default_value = (0.6706, 0.5255, 0.4235, 1.0)
+lid_bsdf.inputs["Roughness"].default_value = 0.55
+
+lid_noise = nt_lid.nodes.new("ShaderNodeTexNoise")
+lid_noise.inputs["Scale"].default_value = 420.0
+lid_noise.inputs["Detail"].default_value = 4.0
+lid_noise.inputs["Roughness"].default_value = 0.6
+
+lid_colorramp = nt_lid.nodes.new("ShaderNodeValToRGB")
+lid_colorramp.color_ramp.elements[0].position = 0.45
+lid_colorramp.color_ramp.elements[0].color = (0.92, 0.92, 0.92, 1.0)
+lid_colorramp.color_ramp.elements[1].position = 0.55
+lid_colorramp.color_ramp.elements[1].color = (1.05, 1.05, 1.05, 1.0)
+nt_lid.links.new(lid_noise.outputs["Fac"], lid_colorramp.inputs["Fac"])
+
+lid_mix = nt_lid.nodes.new("ShaderNodeMix")
+lid_mix.data_type = 'RGBA'
+lid_mix.blend_type = 'MULTIPLY'
+lid_mix.inputs["Factor"].default_value = 0.5
+lid_mix.inputs["A"].default_value = (0.6706, 0.5255, 0.4235, 1.0)
+nt_lid.links.new(lid_colorramp.outputs["Color"], lid_mix.inputs["B"])
+nt_lid.links.new(lid_mix.outputs["Result"], lid_bsdf.inputs["Base Color"])
+
+lid_bump = nt_lid.nodes.new("ShaderNodeBump")
+lid_bump.inputs["Strength"].default_value = 0.15
+nt_lid.links.new(lid_noise.outputs["Fac"], lid_bump.inputs["Height"])
+nt_lid.links.new(lid_bump.outputs["Normal"], lid_bsdf.inputs["Normal"])
 
 
 def get_bone_head_world(bone_name):
@@ -170,7 +214,7 @@ def make_eyelid(side, sign, upper: bool):
     # a thin curved cap: take a UV sphere slightly larger than the eyeball,
     # keep only the top (or bottom) third as the lid shell
     r = EYE_RADIUS * 1.12
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=eye_pos, segments=32, ring_count=48)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, location=eye_pos, segments=64, ring_count=96)
     obj = bpy.context.active_object
     obj.name = f"Eyelid_{'Upper' if upper else 'Lower'}.{side}"
     obj.data.materials.append(lid_mat)
@@ -180,39 +224,49 @@ def make_eyelid(side, sign, upper: bool):
     bm = bmesh.from_edit_mesh(obj.data)
     bm.verts.ensure_lookup_table()
     # local Z here corresponds to world Z before any rotation (sphere not
-    # yet rotated) - keep only the cap on the correct side
-    # cover more of the sphere than a naive half-split would - real open
-    # eyes only expose a lens-shaped band around the equator, most of the
-    # eyeball hides behind the lids even "open"
-    # T controls how far down toward the equator each lid cap reaches.
-    # Smaller T = more of the sphere kept = more lid coverage = a
-    # narrower open-eye slit. 0.30 was backwards from the intent in the
-    # comment above - it left a gap 0.6*r tall (30% of the whole eyeball
-    # height) uncovered, which is what actually produced the huge
-    # white-dominated "insane" eyes. A real palpebral fissure exposes a
-    # much smaller band.
-    T = 0.38
+    # yet rotated) - keep only the cap on the correct side.
+    #
+    # A real palpebral fissure is classically constructed as two
+    # circular arcs of DIFFERENT curvature meeting at the inner/outer
+    # canthus points - a more curved upper-lid arc, a notably flatter
+    # lower-lid arc. That asymmetry is what reads as "almond" rather
+    # than a round/lens shape. Three earlier attempts at this (an
+    # elliptical X taper, a flat-core + linear-ramp taper, a uniform
+    # horizontal stretch of the cut cap) all failed by either fighting
+    # the sphere's own curvature with an independently-shaped cutoff
+    # (flat-topped/boxy result) or by moving kept geometry off the
+    # sphere's surface entirely (stretch pulled the lid rim away from
+    # the eyeball, leaving a visible gap). This instead keeps the test
+    # as a per-vertex delete decision on the SAME unmodified sphere
+    # (like the original plain cut), just with a properly-derived
+    # curved threshold instead of a flat one - so it can't produce a
+    # gap, and it's not fighting the sphere's curvature since the
+    # threshold curve is deliberately shaped to taper into the corners
+    # rather than cut across them.
+    #
+    # Circle through (-a,0), (0,b), (a,0): center is at (0,k) with
+    # k=(b^2-a^2)/(2b), radius R=(b^2+a^2)/(2b); the arc's height at
+    # horizontal offset x is z(x) = k + sqrt(R^2 - x^2). R >= a always
+    # (R-a = (a-b)^2/(2b) >= 0), so the sqrt is defined for all |x|<=a.
+    A = r * 0.80          # half-width between the inner/outer canthus points
+    B_UPPER = r * 0.42    # upper lid arc peak height - more curved
+    B_LOWER = r * 0.20    # lower lid arc peak depth - flatter, per real anatomy
+
+    def arc_height(x, b):
+        k = (b * b - A * A) / (2 * b)
+        R = (b * b + A * A) / (2 * b)
+        x = max(-A, min(A, x))
+        return k + math.sqrt(max(0.0, R * R - x * x))
+
+    b = B_UPPER if upper else B_LOWER
     to_delete = []
     for v in bm.verts:
-        if upper and v.co.z < r * T:
+        boundary = arc_height(v.co.x, b)
+        if upper and v.co.z < boundary:
             to_delete.append(v)
-        elif not upper and v.co.z > -r * T:
+        elif not upper and v.co.z > -boundary:
             to_delete.append(v)
     bmesh.ops.delete(bm, geom=to_delete, context='VERTS')
-    # A plain Z-plane cut through a sphere already reads as a normal eye
-    # at a glance - the sphere's own curvature naturally rounds the
-    # sides of the opening into a lens/stadium shape. Three further
-    # attempts at sharpening this into a literal pointed almond (an
-    # elliptical X taper, a flat-core + linear-ramp taper, and a uniform
-    # horizontal stretch of the cut cap) all made it worse: the first
-    # two fought the sphere's own curvature with a second, independently
-    # shaped cutoff and produced a flat-topped/boxy look at this mesh
-    # resolution; the stretch pulled the lid's rim away from the
-    # eyeball's (unstretched) surface, leaving a visible gap between
-    # them. Getting a true pointed almond right needs actual lid
-    # geometry sculpted to match the eyeball's curvature, not a
-    # parametric cut - leaving that as a known follow-up rather than
-    # forcing a worse result through more threshold math.
     bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.shade_smooth()
