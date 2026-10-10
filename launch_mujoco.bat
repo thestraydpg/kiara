@@ -53,11 +53,14 @@ exit /b 1
 :menu
 echo.
 echo What do you want to do?
-echo   1) Watch her - standing/locomotion (opens an interactive 3D window)
-echo   2) Watch her - reach and grasp
+echo   1) Watch her in MuJoCo - standing/locomotion (opens an interactive 3D window)
+echo   2) Watch her in MuJoCo - reach and grasp
 echo   3) Train/continue - standing balance / locomotion (no window, just logs)
 echo   4) Train/continue - reach and grasp (no window, just logs)
-choice /c 1234 /n /m "Choose 1-4: "
+echo   5) Stream her trained motion onto her REAL Godot character
+echo      (run this, then launch Godot separately - it auto-connects)
+choice /c 12345 /n /m "Choose 1-5: "
+if errorlevel 5 goto retarget
 if errorlevel 4 goto train_reach
 if errorlevel 3 goto train_stand
 if errorlevel 2 goto watch_reach
@@ -69,6 +72,14 @@ goto end
 
 :watch_reach
 python view.py --task reach_grasp
+goto end
+
+:retarget
+echo.
+echo Streaming the standing-balance policy to 127.0.0.1:8766 - leave this
+echo running, then launch/re-launch Godot (RetargetBridge retries the
+echo connection every 2s, so the order doesn't matter). Ctrl+C to stop.
+python retarget_server.py --task stand
 goto end
 
 :train_stand

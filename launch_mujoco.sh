@@ -46,15 +46,24 @@ fi
 
 echo
 echo "What do you want to do?"
-echo "  1) Watch her - standing/locomotion (opens an interactive 3D window)"
-echo "  2) Watch her - reach and grasp"
+echo "  1) Watch her in MuJoCo - standing/locomotion (opens an interactive 3D window)"
+echo "  2) Watch her in MuJoCo - reach and grasp"
 echo "  3) Train/continue - standing balance / locomotion (no window, just logs)"
 echo "  4) Train/continue - reach and grasp (no window, just logs)"
-read -r -p "Choose 1-4: " choice
+echo "  5) Stream her trained motion onto her REAL Godot character"
+echo "     (run this, then launch Godot separately - it auto-connects)"
+read -r -p "Choose 1-5: " choice
 
 case "$choice" in
     2)
         python3 view.py --task reach_grasp
+        ;;
+    5)
+        echo
+        echo "Streaming the standing-balance policy to 127.0.0.1:8766 - leave this"
+        echo "running, then launch/re-launch Godot (RetargetBridge retries the"
+        echo "connection every 2s, so the order doesn't matter). Ctrl+C to stop."
+        python3 retarget_server.py --task stand
         ;;
     3)
         if [ -f checkpoints/stand_latest.zip ]; then

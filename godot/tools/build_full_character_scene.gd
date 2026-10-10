@@ -147,6 +147,13 @@ func _initialize() -> void:
 	root.add_child(mcu_bridge)
 	mcu_bridge.owner = root
 
+	var retarget_bridge := Node.new()
+	retarget_bridge.set_script(load(SCRIPTS + "retarget_bridge.gd"))
+	retarget_bridge.name = "RetargetBridge"
+	retarget_bridge.set("skeleton_path", path_from_sibling)
+	root.add_child(retarget_bridge)
+	retarget_bridge.owner = root
+
 	# --- new input / autonomy / learning layer ---
 	var gamepad := Node.new()
 	gamepad.name = "GamepadController"

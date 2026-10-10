@@ -140,6 +140,36 @@ thin gaps at the shoulders/elbows/hips/knees - see
 python3 train.py --stage stand --timesteps 10000000 --n-envs 4
 ```
 
+**To watch her REAL Godot character perform the trained motion**
+(menu option 5): MuJoCo's own view is always going to be some kind of
+capsule/rigid-piece approximation (see above) - this instead streams
+the trained policy's motion onto her actual rigged, skinned, textured
+Godot character.
+```
+python3 retarget_server.py --task stand
+```
+Leave that running (it listens on `127.0.0.1:8766`), then launch Godot
+separately - `RetargetBridge` (a new node in the scene) connects
+automatically and retries every 2s, so the order doesn't matter either
+way. It sends each MuJoCo body's rotation converted into the matching
+Blender bone's own local-pose frame (not a 1:1 copy - MuJoCo's hinge
+axes and Blender's per-bone axis conventions don't match, so each pose
+goes through a conjugation by that bone's actual rest orientation,
+pulled straight from the .blend file). MuJoCo's single "spine"/"head"
+bodies get distributed evenly across the 17/8 real vertebrae in that
+chain (fractional quaternion power) rather than bending one bone the
+full amount. Honest caveat: this was built and numerically sanity-
+checked (round-trip tests, live rollouts, a real end-to-end Godot
+connection test - no NaNs, no crashes, unit quaternions throughout) but
+never actually SEEN, since this was built in a sandbox with no display.
+If a limb bends the wrong way, backwards, or on the wrong axis once you
+run it, tell me which one - that's a targeted one-joint fix, not a
+redesign. `RetargetBridge` owns pelvis + spine + neck/head + arms + legs
+rotation only (not position/root motion, that's still
+`LocomotionController`'s job) - overlapping with what `MCUBridge`
+documents as its own scope (arms, upper spine, head), so don't run both
+at once expecting them to cooperate yet.
+
 - `kiara_humanoid.xml` — MJCF biomechanical body model (`build_humanoid_mjcf.py`
   generates it from the same proportions as the Blender rig).
 - `locomotion_env.py` — gym-style env, 3-stage curriculum (`stand` →
