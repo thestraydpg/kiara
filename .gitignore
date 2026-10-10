@@ -1,4 +1,8 @@
 /assets/
+# A handful of specific files under /assets/work/ are force-added
+# (git add -f) and LFS-tracked (see .gitattributes) despite this blanket
+# rule - everything else under /assets/ (reference photos/scans,
+# Blender's own .blend1 autosave backups) stays ignored as before.
 godot/.godot/
 __pycache__/
 *.pyc
