@@ -79,6 +79,8 @@ def main():
     ap.add_argument("--checkpoint", default=None, help="explicit .zip to load instead of auto-picking the latest")
     ap.add_argument("--vecnorm", default=None, help="explicit vecnormalize .pkl to match --checkpoint")
     ap.add_argument("--no-policy", action="store_true", help="skip loading any policy - zero action, physics/body only")
+    ap.add_argument("--show-capsules", action="store_true",
+                     help="show the plain collision capsules instead of her real skin (debug aid)")
     args = ap.parse_args()
 
     if args.task == "reach_grasp":
@@ -119,6 +121,14 @@ def main():
     print("Launching viewer - left-drag to orbit, scroll to zoom, ctrl+right-drag")
     print("on her to push her and see how she responds. Close the window to quit.")
     with mujoco.viewer.launch_passive(env.model, env.data) as viewer:
+        with viewer.lock():
+            # group 1 = her real skin mesh, group 2 = the plain collision
+            # capsules underneath it (physics-only; mass=0 visual geoms
+            # don't change the trained dynamics either way). Default to
+            # showing the real body, not the stick-figure proxy it's
+            # actually simulated as.
+            viewer.opt.geomgroup[2] = 1 if args.show_capsules else 0
+
         while viewer.is_running():
             step_start = time.time()
 

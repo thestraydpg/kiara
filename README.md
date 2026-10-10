@@ -120,6 +120,21 @@ drag directly on her to push her and watch her recover - the standard way
 to test a standing policy interactively. The `launch_mujoco.bat`/`.sh`
 shortcut's menu options 1-2 do exactly this.
 
+What you'll actually see is her real mesh/skin (not a stick figure) -
+`kiara_humanoid.xml`'s training skeleton is still plain capsules (that's
+the standard, correct way to do physics RL - capsules are what every
+MuJoCo/Gym humanoid example trains on, and it's what the trained
+checkpoints were actually fit against), but `build_humanoid_mjcf.py` now
+also attaches her real mesh - cut into 15 rigid pieces matching the
+training skeleton's bodies, reusing the skin weights `03_skin_mesh.py`
+already painted - as a visual-only overlay (`contype="0" conaffinity="0"
+mass="0"`, so it changes nothing about the physics a policy trains
+against). `view.py --show-capsules` shows the bare collision capsules
+instead, if you want to see what's actually being simulated underneath.
+Known limitation: it's a RIGID cut, not smooth skinning, so there are
+thin gaps at the shoulders/elbows/hips/knees - see
+`blender_scripts/README.md`'s known-issues list for why.
+
 **To train/continue training** (menu options 3-4 in the shortcut):
 ```
 python3 train.py --stage stand --timesteps 10000000 --n-envs 4

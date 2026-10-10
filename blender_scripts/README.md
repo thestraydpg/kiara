@@ -17,7 +17,9 @@ scripts rather than versioned directly).
 | `07_classify_hair.py` | `kiara_physics.blend` | `hair_verts.json` | Classifies head-region vertices as hair vs. skin via baked texture color |
 | `08_build_hair_clumps.py` | `kiara_physics.blend` + `hair_verts.json` | `kiara_hair.blend` | 10 angular hair-clump bones for coily-hair jiggle physics |
 | `09_build_eyes.py` | `kiara_hair.blend` | `kiara_eyes.blend` | Real eyeball + eyelid geometry (previously just flat texture), rigged for gaze/blink |
-| `10_export_gltf.py` | `kiara_eyes.blend` (update `SRC` - currently still points at `kiara_hair.blend` from before the eye work landed) | `godot/assets/kiara.glb` | Exports to glTF for Godot |
+| `10_export_gltf.py` | `kiara_jaw.blend` | `godot/assets/kiara.glb` | Exports to glTF for Godot |
+| `11_separate_jaw_lips.py` | `kiara_eyes.blend` | `kiara_jaw.blend` | Separates jaw and lips into real mesh (previously flat texture) |
+| `12_export_mujoco_skin.py` | `kiara_jaw.blend` | `mujoco/meshes/kiara_<body>.obj` (15 files) | Cuts Kiara_Body into 15 rigid pieces (by dominant skin weight) matching MuJoCo's 15-body training skeleton, so `mujoco/build_humanoid_mjcf.py` can show her real shape instead of plain capsules - visual only, zero mass/collision impact on the trained physics |
 
 ## Known issues to fix in a future pass
 
@@ -33,6 +35,17 @@ scripts rather than versioned directly).
   than the plain cut - see the comment in 09_build_eyes.py. Getting a
   true almond needs lid geometry sculpted against the eyeball's
   curvature, not a parametric cut.
+- **MuJoCo visual skin has gaps at joints**: 12_export_mujoco_skin.py
+  rigidly cuts the mesh per body part (each vertex goes entirely to one
+  of the 15 training-skeleton bodies) rather than smoothly blending
+  across the joint the way the real 177-bone Godot rig does - a vertex
+  that would've blended between, say, thigh and shank gets dropped
+  rather than stitched, leaving a thin gap at knees/elbows/shoulders/
+  etc. Real smooth deformation needs MuJoCo's own `<skin>` element
+  (per-vertex multi-bone blend weights, same idea as Godot's skinning)
+  instead of plain rigid OBJ mesh geoms - not done here because that
+  format's exact binary layout couldn't be verified from a sandbox with
+  no display to render the result and check it landed correctly.
 
 ## Fixed (previously listed here)
 
