@@ -24,7 +24,7 @@ import argparse
 import os
 
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.monitor import Monitor
 
@@ -55,6 +55,10 @@ def main():
     ap.add_argument("--timesteps", type=int, default=2_000_000)
     ap.add_argument("--n-envs", type=int, default=4)
     ap.add_argument("--resume", type=str, default=None, help="checkpoint .zip to warm-start from")
+    ap.add_argument("--vecnorm-resume", type=str, default=None,
+                     help="matching *_vecnormalize_*.pkl for --resume (REQUIRED when resuming a run "
+                          "started after the VecNormalize fix, otherwise normalization stats reset "
+                          "and corrupt the warm start)")
     ap.add_argument("--checkpoint-freq", type=int, default=50_000, help="env steps between checkpoints")
     args = ap.parse_args()
 
@@ -65,7 +69,26 @@ def main():
     env_fns = [make_env_fn(stage_kwargs, seed=i) for i in range(args.n_envs)]
     vec_env = SubprocVecEnv(env_fns)
 
+    # Raw MuJoCo observations (joint velocities especially, which can spike
+    # to large values during a fall) span wildly different per-dimension
+    # scales with nothing to normalize them. Feeding that straight into an
+    # MLP policy/value net is a known cause of exactly what the first
+    # 9M-step run showed: approx_kl orders of magnitude above a healthy
+    # range, ~85% of updates getting clipped, and action std stuck at ~9
+    # (so actions are saturating to the clip bounds every step instead of
+    # exerting fine control) with zero improvement in episode length after
+    # the first couple million steps. norm_reward also keeps the value
+    # function's targets in a sane range for the same reason.
+    if args.vecnorm_resume:
+        vec_env = VecNormalize.load(args.vecnorm_resume, vec_env)
+        vec_env.training = True
+    else:
+        vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.0, clip_reward=10.0, gamma=0.99)
+
     if args.resume:
+        if not args.vecnorm_resume:
+            print("WARNING: --resume without --vecnorm-resume - normalization stats are starting "
+                  "fresh and will not match what the warm-started policy was trained against.")
         print(f"Resuming from {args.resume}")
         model = PPO.load(args.resume, env=vec_env, device="cpu")
     else:
@@ -81,6 +104,13 @@ def main():
             clip_range=0.2,
             ent_coef=0.003,
             learning_rate=3e-4,
+            # Safety valve: stop taking further gradient steps within an
+            # epoch once the policy has already moved this far from the
+            # rollout policy. The unnormalized-observation run blew past
+            # any sane KL budget every single update (approx_kl ~1.5-1.6,
+            # vs. this 0.03 target) - target_kl caps that regardless of
+            # whatever else might still be feeding it large gradients.
+            target_kl=0.03,
             policy_kwargs=dict(net_arch=dict(pi=[256, 256], vf=[256, 256])),
             tensorboard_log=LOG_DIR,
             verbose=1,
@@ -90,6 +120,7 @@ def main():
         save_freq=max(1, args.checkpoint_freq // args.n_envs),
         save_path=CKPT_DIR,
         name_prefix=f"{args.stage}",
+        save_vecnormalize=True,
     )
 
     print(f"Training stage '{args.stage}' for {args.timesteps} timesteps across {args.n_envs} envs...")
@@ -98,6 +129,7 @@ def main():
 
     final_path = os.path.join(CKPT_DIR, f"{args.stage}_final.zip")
     model.save(final_path)
+    vec_env.save(os.path.join(CKPT_DIR, f"{args.stage}_final_vecnormalize.pkl"))
     print(f"Saved final model: {final_path}")
 
 
