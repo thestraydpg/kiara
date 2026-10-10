@@ -22,6 +22,13 @@ source mujoco/venv/bin/activate
 echo "Installing MuJoCo / RL dependencies - torch is a big download, this can take a few minutes..."
 pip install --upgrade pip >/dev/null
 pip install -r mujoco/requirements.txt
+
+if python3 -c "import stable_baselines3, mujoco, torch" >/dev/null 2>&1; then
+    echo "Dependencies OK."
+else
+    echo "WARNING: dependency install did not fully succeed - re-run install.sh once your"
+    echo "internet connection is stable, or launch_mujoco.sh will retry automatically next time."
+fi
 deactivate
 
 if ! command -v godot >/dev/null 2>&1 && ! command -v godot4 >/dev/null 2>&1; then

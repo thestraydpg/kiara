@@ -2,13 +2,26 @@
 cd "$(dirname "$0")/mujoco"
 
 if [ ! -d venv ]; then
-    echo "First-time setup: creating a virtual environment and installing dependencies..."
+    echo "Creating a virtual environment..."
     python3 -m venv venv
-    source venv/bin/activate
+fi
+source venv/bin/activate
+
+# Don't just trust that venv/ existing means it's populated - a
+# cancelled/failed install before leaves an empty-but-present venv that
+# looks "already set up" and silently hits ModuleNotFoundError. Check
+# the import instead.
+if ! python3 -c "import stable_baselines3" >/dev/null 2>&1; then
+    echo "Installing MuJoCo / RL dependencies - torch is a big download, this may take a few minutes..."
     pip install --upgrade pip >/dev/null
     pip install -r requirements.txt
-else
-    source venv/bin/activate
+    if ! python3 -c "import stable_baselines3" >/dev/null 2>&1; then
+        echo
+        echo "Dependency install failed. Check your internet connection and try again, or run:"
+        echo "  venv/bin/pip install -r requirements.txt"
+        echo "directly to see the actual error."
+        exit 1
+    fi
 fi
 
 echo

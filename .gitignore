@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 mujoco/checkpoints/
 mujoco/logs/
+mujoco/venv/
+.godot_path.txt

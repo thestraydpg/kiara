@@ -3,14 +3,31 @@ setlocal
 cd /d "%~dp0mujoco"
 
 if not exist venv (
-    echo First-time setup: creating a virtual environment and installing
-    echo dependencies - torch is a big download, this may take a few minutes.
+    echo Creating a virtual environment...
     python -m venv venv
-    call venv\Scripts\activate.bat
+)
+call venv\Scripts\activate.bat
+
+rem Don't just trust that venv\ existing means it's actually populated -
+rem a cancelled/failed install from before leaves an empty-but-present
+rem venv folder, which looked "already set up" and silently skipped
+rem straight to ModuleNotFoundError. Actually check the import instead.
+venv\Scripts\python.exe -c "import stable_baselines3" >nul 2>nul
+if errorlevel 1 (
+    echo Installing MuJoCo / RL dependencies - torch is a big download,
+    echo this may take a few minutes...
     pip install --upgrade pip >nul
     pip install -r requirements.txt
-) else (
-    call venv\Scripts\activate.bat
+    venv\Scripts\python.exe -c "import stable_baselines3" >nul 2>nul
+    if errorlevel 1 (
+        echo.
+        echo Dependency install failed. Check your internet connection and
+        echo try again - if it keeps failing, open this folder in a command
+        echo prompt and run: venv\Scripts\pip install -r requirements.txt
+        echo to see the actual error.
+        pause
+        exit /b 1
+    )
 )
 
 echo.

@@ -23,17 +23,27 @@ echo Installing MuJoCo / RL dependencies - torch is a big download, this
 echo can take a few minutes on a slow connection...
 pip install --upgrade pip >nul
 pip install -r mujoco\requirements.txt
+
+echo Verifying the install actually took...
+mujoco\venv\Scripts\python.exe -c "import stable_baselines3, mujoco, torch" >nul 2>nul
+if errorlevel 1 (
+    echo.
+    echo WARNING: dependency install did not fully succeed - re-run
+    echo install.bat once your internet connection is stable, or the
+    echo "Kiara (Train MuJoCo)" shortcut will retry automatically next
+    echo time you use it.
+) else (
+    echo Dependencies OK.
+)
 call mujoco\venv\Scripts\deactivate.bat
 
 echo.
 where godot >nul 2>nul
 if errorlevel 1 (
-    echo NOTE: Godot 4.3+ was not found on PATH.
-    echo Download it from https://godotengine.org/download, then either:
-    echo   - add godot.exe to your PATH, or
-    echo   - copy godot.exe into this folder ^(next to install.bat^)
-    echo The "Kiara (Godot)" shortcut will still be created now and will
-    echo work as soon as Godot is in either of those two places.
+    echo NOTE: Godot wasn't found on PATH - that's fine, the "Kiara (Godot)"
+    echo shortcut also searches your Desktop/Downloads/this folder for it
+    echo automatically the first time you use it and remembers what it finds.
+    echo If you don't have Godot 4.3+ yet, get it from https://godotengine.org/download
 ) else (
     echo Godot found on PATH - good.
 )
