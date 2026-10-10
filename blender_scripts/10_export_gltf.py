@@ -1,7 +1,7 @@
 import bpy
 import os
 
-SRC = "/home/user/kiara/assets/work/kiara_eyes.blend"
+SRC = "/home/user/kiara/assets/work/kiara_jaw.blend"
 OUT_DIR = "/home/user/kiara/godot/assets"
 OUT_GLB = os.path.join(OUT_DIR, "kiara.glb")
 
