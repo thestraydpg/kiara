@@ -12,6 +12,25 @@ vision-language perception, speech/TTS) is intentionally out of scope here
 integration points (`mcu/`, `agent/`, `godot/scripts/mcu_bridge.gd`) so that
 layer can be built against this body without any rework.
 
+## Easiest start: install + shortcuts
+
+**Windows:** double-click `install.bat`. It creates a Python virtual
+environment under `mujoco/venv`, installs the RL dependencies, checks
+whether Godot is on your PATH (tells you where to get it if not —
+https://godotengine.org/download), and adds two Desktop shortcuts:
+*"Kiara (Godot)"* and *"Kiara (Train MuJoCo)"* (the latter asks which
+task — locomotion or reach/grasp — and auto-resumes from the included
+checkpoint if one's present). Nothing is installed system-wide or needs
+admin rights — it all runs in place out of wherever you unzipped this.
+
+**macOS/Linux:** run `./install.sh` once, then `./launch_godot.sh` /
+`./launch_mujoco.sh` directly (no desktop-icon step — those vary too
+much by distro to do generically; drag the scripts into a dock/launcher
+by hand if you want icons).
+
+Everything below describes what those scripts are doing, for running
+things by hand instead.
+
 ## Quick start: Godot (render + soft-body physics)
 
 1. Open `godot/` as a project in Godot 4.3+.
